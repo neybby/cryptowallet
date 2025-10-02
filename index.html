@@ -1,0 +1,1273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crypto Wallet</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#97a0b3;--accent:#7c3aed;--glass: rgba(255,255,255,0.04)}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Poppins', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;background:linear-gradient(180deg,#071025 0%, #071525 100%);color:#e6eef8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .app{width:960px;max-width:100%}
+    .card{position:relative;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));border-radius:16px;padding:22px;box-shadow:0 8px 40px rgba(2,6,23,0.6);transition:all .3s ease}
+
+    /* language switch fixed inside card (top-right) */
+    .lang-switch{position:absolute;top:18px;right:18px;display:flex;gap:8px;z-index:1000}
+    .lang-btn{background:var(--glass);border:none;border-radius:8px;padding:6px 10px;color:white;cursor:pointer;transition:background .2s;display:flex;align-items:center;gap:6px;font-size:13px}
+    .lang-btn:hover{background:rgba(255,255,255,0.12)}
+
+    form{display:flex;flex-direction:column;gap:12px}
+    input[type=text],input[type=password],input[type=number]{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:12px;border-radius:10px;color:inherit;transition:border .15s;appearance:none;font-family:inherit}
+    input:focus{border-color:var(--accent);outline:none}
+    button.btn{padding:10px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,var(--accent),#5b21b6);cursor:pointer;color:white;font-weight:600;transition:transform .12s ease;font-family:inherit}
+    button.btn:hover{transform:translateY(-3px)}
+    small.muted{color:var(--muted)}
+
+    .wallet-header{display:flex;justify-content:space-between;align-items:center}
+    .user-badge{background:var(--glass);padding:8px 12px;border-radius:999px;color:#cfe0ff}
+    .balances{display:flex;gap:14px;margin-top:18px}
+    .balance-card{flex:1;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:14px;border-radius:12px}
+    .assets{margin-top:18px;display: block;}
+
+    /* asset list + custom thin scrollbar */
+    .asset-list{background:var(--card);padding:12px;border-radius:12px;max-height:380px;overflow-y:auto}
+    .asset-list::-webkit-scrollbar{width:8px}
+    .asset-list::-webkit-scrollbar-track{background:transparent}
+    .asset-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:8px}
+
+    .asset{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:10px;margin-bottom:10px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);transition:background .12s}
+    .asset:hover{background:rgba(255,255,255,0.04)}
+    .asset .left{display:flex;gap:12px;align-items:center}
+    .coin-circle{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;background:linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01))}
+
+    .addr{word-break:break-all;background:white;padding:12px;border-radius:12px;color:#0b1220;max-width:100%;box-shadow:0 8px 30px rgba(2,6,23,0.5)}
+    .qr-wrapper{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:12px}
+    .qr-wrapper canvas{border-radius:16px;box-shadow:0 12px 40px rgba(2,6,23,0.6);padding:8px;background:white}
+
+    .networks{display:flex;gap:8px;margin-top:12px}
+    .net-btn{flex:1;padding:12px;border-radius:10px;background:rgba(255,255,255,0.06);border:none;color:white;cursor:pointer;transition:transform .12s,background .12s;font-family:inherit}
+    .net-btn:hover{transform:translateY(-3px)}
+    .net-btn.active{background:linear-gradient(90deg,var(--accent),#5b21b6)}
+
+    /* modal centered */
+    .modal-back{position:fixed;inset:0;background:rgba(3,6,14,0.6);display:flex;align-items:center;justify-content:center;animation:fadeIn .18s ease;z-index:999}
+    .modal{width:520px;background:var(--card);padding:24px;border-radius:18px;animation:scaleIn .22s ease;box-shadow:0 12px 50px rgba(0,0,0,0.6)}
+    @keyframes scaleIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+    .modal h2{margin:0 0 14px;font-size:22px}
+    .modal .btn-row{display:flex;justify-content:flex-end;gap:12px;margin-top:18px}
+
+    @keyframes scaleOut {
+  from { opacity:1; transform: scale(1); }
+  to   { opacity:0; transform: scale(0.92); }
+}
+
+.qr-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.qr-box {
+  padding: 14px;
+  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  animation: qrFadeIn 0.4s ease;
+}
+
+.qr-box canvas, 
+.qr-box img {
+  border-radius: 12px;
+  display: block;
+}
+
+@keyframes qrFadeIn {
+  from { opacity:0; transform: scale(0.9); }
+  to   { opacity:1; transform: scale(1); }
+}
+
+/* COPY button стиль */
+.copy-btn {
+  background: linear-gradient(90deg, var(--accent), #5b21b6);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+.copy-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+}
+.copy-btn.copied {
+  background: #2ecc71;
+}
+
+
+    @keyframes scaleOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.94); }
+}
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+
+    input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* убираем стрелочки в Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.receipt-box {
+  background: #fff;
+  color: #222;
+  border-radius: 14px;
+  padding: 20px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+  font-family: monospace;
+}
+
+.receipt-header {
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  border-bottom: 1px dashed #999;
+  padding-bottom: 10px;
+}
+
+.receipt-body {
+  margin: 10px 0;
+  border-bottom: 1px dashed #999;
+  padding-bottom: 10px;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 6px 0;
+}
+
+.receipt-footer {
+  margin-top: 10px;
+  text-align: center;
+}
+
+
+/* ---- Deposit UI tweaks & copy animation ---- */
+.deposit-qr { display:flex;flex-direction:column;align-items:center;margin:16px 0; }
+.deposit-qr .qr-bg { background:white;padding:12px;border-radius:14px;box-shadow:0 12px 30px rgba(2,6,23,0.45); }
+.addr-box{
+  background:rgba(255,255,255,0.04);
+  border-radius:10px;
+  padding:10px 12px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:12px;
+  min-width:240px;
+  transition: box-shadow .18s ease, border .18s ease, transform .12s ease;
+  border:1px solid rgba(255,255,255,0.03);
+}
+.addr-box .addr-text{
+  font-weight:600;
+  font-size:14px;
+  word-break:break-all;
+  color: #e6eef8;
+  margin-right:8px;
+}
+.copy-btn{
+  background:var(--accent);
+  border:none;
+  color:#fff;
+  padding:8px 12px;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:700;
+  font-family:inherit;
+  transition: transform .12s ease, background .18s ease;
+  box-shadow: 0 6px 18px rgba(124,58,237,0.14);
+}
+.copy-btn:active{ transform: scale(.98); }
+
+.addr-box.copied{
+  box-shadow: 0 6px 18px rgba(46,204,113,0.12);
+  border:1px solid rgba(46,204,113,0.18);
+  transform: translateY(-1px);
+}
+.copy-btn.copied{ background: #2ecc71; box-shadow: 0 8px 20px rgba(46,204,113,0.16); }
+
+
+    footer{margin-top:14px;color:var(--muted);font-size:13px;text-align:center}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+    @media(max-width:880px){.assets{grid-template-columns:1fr}.modal{width:92%}}
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+</head>
+<body>
+  <div class="app card" id="app">
+
+  <!-- 🔹 Экран логина -->
+  <div id="screen-login">
+    <div class="lang-switch">
+      <button class="lang-btn" data-lang="en">🇺🇸 EN</button>
+      <button class="lang-btn" data-lang="ru">🇷🇺 RU</button>
+    </div>
+
+    <div class="logo" style="font-size:22px;font-weight:700">CryptoЛОХ</div>
+    <h1 id="login-title">Crypto wallet</h1>
+    <p class="lead" id="login-sub">Sign in with your credentials.</p>
+    <form id="login-form">
+      <input id="input-login" type="text" placeholder="Username" required />
+      <input id="input-pass" type="password" placeholder="Password" required />
+      <button class="btn" id="btn-login" type="submit">Sign in</button>
+      <div id="login-error" style="color:#ffb4b4;margin-top:8px;display:none"></div>
+    </form>
+  </div>
+
+  <!-- 🔹 Экран кошелька -->
+  <div id="screen-wallet" style="display:none">
+    <div class="wallet-header">
+      <div>
+        <div style="font-size:13px;color:var(--muted)" id="welcome">Welcome,</div>
+        <div style="font-weight:800;font-size:20px" id="ui-username">User</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="user-badge" id="ui-email">email@user</div>
+        <button class="btn" id="btn-logout"
+          style="background:none;border:1px solid rgba(255,255,255,0.06);color:inherit">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <div class="balances">
+      <div class="balance-card">
+        <div style="font-size:13px;color:var(--muted)" id="balance-label">Total balance (simulated)</div>
+        <div style="font-size:26px;font-weight:800;margin-top:8px" id="ui-total">0.00 USD</div>
+      </div>
+    </div>
+
+    <div class="assets">
+      <div class="asset-list" id="asset-list"></div>
+    </div>
+
+<div id="tx-history" style="margin-top:24px">
+  <h3 id="tx-title" style="margin-bottom:10px"></h3>
+  <div id="tx-list" style="background:var(--card);padding:12px;border-radius:12px"></div>
+</div>
+
+
+ 
+  </div>
+
+
+
+  <!-- 🔹 Модалка -->
+  <div id="modal" style="display:none"></div>
+
+</div>
+
+
+
+
+
+
+<script>
+// --- CONFIG ---
+// --- CONFIG (заменить старый) ---
+const CONFIG = {
+  // системные общие вещи
+  ratesUSD:{ BTC:27000, LTC:70, USDT:1.0, USDC:1.0, TON:2.0, ETH:1800, BNB:320 },
+  icons:{ BTC:'₿', LTC:'Ł', USDT:'$', USDC:'◈', TON:'◎', ETH:'Ξ', BNB:'Ⓑ' },
+  fullNames:{
+    BTC:'Bitcoin', LTC:'Litecoin', USDT:'Tether (USDT)', USDC:'USD Coin', TON:'TON',
+    ETH:'Ethereum', BNB:'Binance Coin'
+  },
+  // глобальные доступные сети для тикеров (удобно для формы)
+  networks:{
+    BTC:['Mainnet'],
+    LTC:['Mainnet'],
+    TON:['Mainnet'],
+    USDT:['ERC20','TRC20','BEP20'],
+    USDC:['ERC20'],
+    ETH:['ERC20'],
+    BNB:['BEP20']
+  },
+
+  // users — теперь каждый пользователь хранит свои кошельки и балансы
+  users: []
+};
+
+
+
+
+// --- STATE ---
+let STATE = {
+  currentUser: null,
+  userWallets: {},   // сюда под логином будем подгружать адреса
+  balances: {},      // сюда под логином будем подгружать балансы
+  selectedAsset: null,
+  lang: 'en',
+  currentModal: null,
+  transactions: [],   // массив истории транзакций
+  txTimers: {},       // таймауты (sent/completed)
+  txIntervals: {}     // интервалы обновления UI
+};
+
+
+window.addEventListener('DOMContentLoaded', async ()=>{
+  try {
+    const res = await fetch('users.json'); // грузим из файла
+    const data = await res.json();
+    CONFIG.users = data.users; // закидываем в CONFIG
+  } catch (err) {
+    console.error("Ошибка загрузки users.json:", err);
+  }
+
+  // остальная инициализация
+  document.querySelectorAll('.lang-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=> setLang(btn.dataset.lang));
+  });
+  $('login-form').addEventListener('submit', (e)=>{ e.preventDefault(); handleLogin(); });
+  $('btn-logout').addEventListener('click', ()=>{ STATE.currentUser=null; resetToLogin(); });
+  setLang('en');
+});
+
+
+function $(id){return document.getElementById(id)}
+function formatAsset(amount,t){
+  if(typeof amount === 'object'){
+    const total = Object.values(amount).reduce((a,b)=>a+b,0);
+    return total.toFixed(2)+' '+t;
+  }
+  if(t==='BTC'||t==='LTC')return amount.toFixed(8)+' '+t;
+  if(t==='TON')return amount.toFixed(4)+' '+t;
+  return amount.toFixed(2)+' '+t;
+}
+
+function usdValue(t,a){const r=CONFIG.ratesUSD[t]||0;return a*r}
+
+const STR = {
+  en: {
+    open:'Open',deposit:'Deposit',withdraw:'Withdraw',close:'Close',send:'Send',
+    select_network:'Select network',
+    send_warning:'Send only on the selected network, otherwise funds may be lost.',
+    use_addr:'Use this address to fund your balance',
+    recipient:'Recipient address',
+    amount:'Amount',
+    balance:'Your balance',
+
+    tx_details: 'Transaction details',
+    tx_success: 'Transaction has been broadcast to the network and is awaiting confirmation.',
+    tx_amount: 'Amount',
+    tx_to: 'Recipient',
+    tx_cancel: 'Refund',
+    tx_cancelled: 'Transaction has been successfully cancelled. Funds including the network fee have been returned to your wallet.',
+    tx_sent: "Sent",
+    tx_completed: "Completed",
+    done: 'Done',
+
+    total: "Total",
+    last_tx: "Latest transactions",
+    no_tx: "No transactions",
+    tx_pending: "Pending confirmation",
+    tx_cancelled_short: "Refunded",
+    fee: "Network fee",
+    expires_in: "Time left to refund"
+  },
+  ru: {
+    open:'Открыть',deposit:'Пополнить',withdraw:'Вывести',close:'Закрыть',send:'Отправить',
+    select_network:'Выберите сеть',
+    send_warning:'Отправляйте только в выбранной сети, иначе средства могут быть утеряны.',
+    use_addr:'Используйте данный адрес для пополнения баланса',
+    recipient:'Адрес получателя',
+    amount:'Сумма',
+    balance:'Ваш баланс',
+
+    tx_details: 'Детали транзакции',
+    tx_success: 'Транзакция отправлена в сеть и ожидает подтверждения.',
+    tx_amount: 'Сумма',
+    tx_to: 'Получатель',
+    tx_cancel: 'Отменить транзакцию',
+    tx_cancelled: 'Транзакция успешно отменена. Средства вместе с комиссией возвращены на ваш кошелек.',
+    tx_sent: "Отправлено",
+    tx_completed: "Завершено",
+    done: 'Готово',
+
+    total: "Всего",
+    last_tx: "Последние транзакции",
+    no_tx: "Нет транзакций",
+    tx_pending: "Ожидает подтверждения",
+    tx_cancelled_short: "Отменена",
+    fee: "Комиссия сети",
+    expires_in: "Оставшееся время для отмены"
+  }
+};
+
+
+
+
+
+function handleLogin(){
+  const login = $('input-login').value.trim().toLowerCase();
+  const pass = $('input-pass').value.trim();
+
+  const u = CONFIG.users.find(x => 
+    x.login.toLowerCase() === login && x.password === pass
+  );
+
+  if(!u){
+    $('login-error').style.display='block';
+    $('login-error').textContent = (STATE.lang==='ru'
+      ? 'Неверный логин или пароль'
+      : 'Invalid login or password');
+    return;
+  }
+
+  $('login-error').style.display='none';
+  STATE.currentUser = { login: u.login, displayName: u.displayName, email: u.email };
+  STATE.userWallets = JSON.parse(JSON.stringify(u.wallets || {}));
+  STATE.balances = JSON.parse(JSON.stringify(u.balances || {}));
+
+  showWallet();
+}
+
+
+
+function getWalletAddress(ticker, net){
+  // сначала пробуем STATE.userWallets (текущий юзер)
+  if(STATE.userWallets){
+    const key = net ? `${ticker}_${net}` : ticker;
+    if(STATE.userWallets[key]) return STATE.userWallets[key];
+  }
+  // fallback — если нужен глобальный fallback, можно попытаться взять из CONFIG (редко)
+  if(CONFIG.wallets){
+    const key2 = net ? `${ticker}_${net}` : ticker;
+    return CONFIG.wallets[key2] || 'Address not set';
+  }
+  return 'Address not set';
+}
+
+function resetToLogin(){ $('screen-wallet').style.display='none'; $('screen-login').style.display='block'; }
+
+function showWallet(){ 
+  $('screen-login').style.display='none'; 
+  $('screen-wallet').style.display='block'; 
+  $('ui-username').textContent = STATE.currentUser.displayName; 
+  $('ui-email').textContent = STATE.currentUser.email; 
+  renderAssets(); 
+  updateTotal();
+  $('tx-title').textContent = STR[STATE.lang].last_tx; // ✅ переводимый заголовок
+  renderTransactions();
+}
+
+
+
+function renderAssets(){ const list = $('asset-list'); list.innerHTML = ''; Object.keys(STATE.balances).forEach(t=>{ const row = document.createElement('div'); row.className='asset'; const fullname = CONFIG.fullNames[t] || t; row.innerHTML = `<div class="left"><div class="coin-circle">${CONFIG.icons[t]||t[0]}</div><div><div style="font-weight:700">${t}</div><div style="color:var(--muted);font-size:13px">${STR[STATE.lang].balance} ${fullname}: ${formatAsset(STATE.balances[t],t)}</div></div></div><div><button class="btn open-btn" data-ticker="${t}">${STR[STATE.lang].open}</button></div>`; list.appendChild(row); row.querySelector('.open-btn').addEventListener('click', ()=> openAssetModal(t)); }); }
+
+// Modal helper: creates centered backdrop and modal content, tracks current modal type
+
+function showModal(innerHtml, modalType=null, meta={}){
+  const container = $('modal');
+  container.innerHTML = '';
+  const back = document.createElement('div'); back.className = 'modal-back';
+  const modal = document.createElement('div'); modal.className = 'modal'; modal.innerHTML = innerHtml;
+  back.appendChild(modal);
+  container.appendChild(back);
+  container.style.display = 'block';
+  // close when clicking backdrop
+  back.addEventListener('click', closeModal);
+  modal.addEventListener('click', e=>e.stopPropagation());
+  STATE.currentModal = Object.assign({type: modalType}, meta);
+}
+
+function cancelTransactionForTx(tx){
+  if(tx.status === 'cancelled' || tx.status === 'refunded') return;
+
+  tx.status = 'cancelled';
+  renderTransactions();
+  updateTotal(false); // 🔹 обновить без анимации
+  closeModal();
+
+  showMessage(STATE.lang==='ru' 
+    ? 'Транзакция отменена. Средства скоро будут возвращены.' 
+    : 'Transaction cancelled. Funds will be refunded shortly.'
+  );
+
+  // через 12 секунд возврат
+  setTimeout(()=>{
+    if(tx.status === 'cancelled'){
+      tx.status = 'refunded';
+
+      if(typeof STATE.balances[tx.ticker] === 'object'){
+        STATE.balances[tx.ticker][tx.net] = Number((STATE.balances[tx.ticker][tx.net] + tx.amount + tx.fee).toFixed(8));
+      } else {
+        STATE.balances[tx.ticker] = Number((STATE.balances[tx.ticker] + tx.amount + tx.fee).toFixed(8));
+      }
+
+      updateTotal();
+      renderTransactions();
+
+      showMessage(STATE.lang==='ru' 
+        ? 'Возврат средств зачислен.' 
+        : 'Funds have been refunded.'
+      );
+    }
+  }, 12000);
+}
+
+
+
+
+
+function openTransactionDetails(tx) {
+  if (STATE.txIntervals && STATE.txIntervals[tx.id]) {
+    clearInterval(STATE.txIntervals[tx.id]);
+    delete STATE.txIntervals[tx.id];
+  }
+
+  const labelMap = {
+    pending: STR[STATE.lang].tx_pending,
+    sent: STATE.lang === 'ru' ? 'Отправлено' : 'Sent',
+    completed: STATE.lang === 'ru' ? 'Завершено' : 'Completed',
+    cancelled: STR[STATE.lang].tx_cancelled_short,
+    refunded: STATE.lang === 'ru' ? 'Возврат средств' : 'Refunded'
+  };
+  const colorMap = {
+    pending: '#7c3aed',
+    sent: '#2ecc71',
+    completed: '#3498db',
+    cancelled: '#ff4d4d',
+    refunded: '#ff4d4d'
+  };
+
+  const statusLabel = labelMap[tx.status] || tx.status;
+  const statusColor = colorMap[tx.status] || '#7c3aed';
+
+  const remainingMs = tx.expiresAt - Date.now();
+  const remainingMin = Math.max(0, Math.floor(remainingMs / 60000));
+  const remainingSec = Math.max(0, Math.floor((remainingMs % 60000) / 1000));
+
+  const inner = `
+    <h2 style="margin-bottom:6px">${STR[STATE.lang].tx_details}</h2>
+    <div style="margin-bottom:18px; font-weight:600; font-size:14px; color:${statusColor}">
+      ● ${statusLabel}
+    </div>
+
+    <div class="tx-row"><span>${STATE.lang==='ru'?'Криптовалюта':'Asset'}:</span><b>${CONFIG.fullNames[tx.ticker] || tx.ticker}</b></div>
+    <div class="tx-row"><span>${STATE.lang==='ru'?'Сумма':'Amount'}:</span><b>${tx.amount} ${tx.ticker} + ${tx.fee} ${tx.ticker} fee</b></div>
+    <div class="tx-row"><span>${STATE.lang==='ru'?'Сеть':'Network'}:</span>${tx.net}</div>
+    <div class="tx-row"><span>${STATE.lang==='ru'?'Адрес получателя':'Recipient'}:</span><span style="word-break:break-all">${tx.to}</span></div>
+    <div class="tx-row"><span>ID:</span>${tx.internalId}</div>
+    <div class="tx-row"><span>${STATE.lang==='ru'?'Дата':'Date'}:</span>${new Date(tx.createdAt).toLocaleString()}</div>
+    <div class="tx-row"><span>Hash:</span>
+      <a href="https://tronscan.org/#/transaction/${tx.hash}" target="_blank" style="color:#4da3ff;text-decoration:none">
+        ${tx.hash.slice(0,6)}...${tx.hash.slice(-6)}
+      </a>
+    </div>
+
+    <div style="margin-top:14px;font-size:13px;color:#f1c40f" id="cancel-timer">
+      ${STATE.lang==='ru'
+        ? `Оставшееся время для отмены: ${remainingMin}:${remainingSec.toString().padStart(2,'0')}`
+        : `Time left to refund: ${remainingMin}:${remainingSec.toString().padStart(2,'0')}`}
+    </div>
+
+    <div class="btn-row" style="margin-top:22px; display:flex; justify-content:space-between">
+      <button class="btn" id="btn-close" style="background:#444">${STR[STATE.lang].close}</button>
+      <button class="btn" id="btn-receipt" style="background:#2ecc71;display:flex;align-items:center;gap:6px">
+        🧾 ${STATE.lang==='ru'?'Чек':'Receipt'}
+      </button>
+      <button class="btn" id="btn-cancel" style="background:#b33939; display:${(Date.now()<tx.expiresAt && tx.status!=='cancelled' && tx.status!=='refunded')?'inline-block':'none'}">
+        ${STR[STATE.lang].tx_cancel}
+      </button>
+    </div>
+  `;
+
+  showModal(inner, 'txdetails', { id: tx.id, ticker: tx.ticker, net: tx.net });
+
+  // стилизация рядов
+  document.querySelectorAll('.tx-row').forEach(el=>{
+    el.style.cssText = `
+      display:flex; 
+      justify-content:space-between; 
+      padding:6px 0; 
+      font-size:14px; 
+      border-bottom:1px dashed rgba(255,255,255,0.1)`;
+    el.querySelector('span').style.color = "var(--muted)";
+  });
+
+  // таймер
+  STATE.txIntervals[tx.id] = setInterval(() => {
+    const left = tx.expiresAt - Date.now();
+    if (left <= 0) {
+      clearInterval(STATE.txIntervals[tx.id]);
+      document.getElementById('cancel-timer').textContent = STATE.lang==='ru'
+        ? 'Время для отмены истекло'
+        : 'Refund time expired';
+      document.getElementById('btn-cancel').style.display = 'none';
+    } else {
+      const mm = Math.floor(left / 60000);
+      const ss = Math.floor((left % 60000) / 1000);
+      document.getElementById('cancel-timer').textContent = STATE.lang==='ru'
+        ? `Оставшееся время для отмены: ${mm}:${ss.toString().padStart(2,'0')}`
+        : `Time left to refund: ${mm}:${ss.toString().padStart(2,'0')}`;
+    }
+  }, 1000);
+
+  // кнопки
+  document.getElementById('btn-close')?.addEventListener('click', closeModal);
+  document.getElementById('btn-receipt')?.addEventListener('click', ()=> openReceiptModal(tx));
+  document.getElementById('btn-cancel')?.addEventListener('click', ()=> {
+    const confirmHtml = `
+      <h2 style="margin-bottom:14px">${STATE.lang==='ru'?'Вы уверены?':'Are you sure?'}</h2>
+      <div style="background:rgba(255,255,255,0.04);
+                  padding:12px 16px;
+                  border-radius:10px;
+                  margin-bottom:10px;
+                  font-size:14px;
+                  color:var(--muted)">
+        ${STATE.lang==='ru'
+          ? 'Если вы отмените транзакцию, средства вместе с комиссией будут возвращены в ближайшее время.'
+          : 'If you cancel the transaction, the funds along with the fee will be returned shortly.'}
+      </div>
+      <div class="btn-row" style="margin-top:20px;display:flex;gap:12px">
+        <button class="btn" style="flex:1;background:#444" id="cancel-no">
+          ${STATE.lang==='ru'?'Нет':'No'}
+        </button>
+        <button class="btn" style="flex:1;background:#b33939" id="cancel-yes">
+          ${STATE.lang==='ru'?'Да, отменить':'Yes, cancel'}
+        </button>
+      </div>
+    `;
+
+    showModal(confirmHtml, 'confirmcancel', {id: tx.id});
+
+    document.getElementById('cancel-no').addEventListener('click', ()=> {
+      openTransactionDetails(tx);
+    });
+    document.getElementById('cancel-yes').addEventListener('click', ()=> {
+      cancelTransactionForTx(tx);
+    });
+  });
+}
+
+
+
+
+function openReceiptModal(tx) {
+  const labelMap = {
+    pending: STR[STATE.lang].tx_pending,
+    sent: STATE.lang === 'ru' ? 'Отправлено' : 'Sent',
+    completed: STATE.lang === 'ru' ? 'Завершено' : 'Completed',
+    cancelled: STR[STATE.lang].tx_cancelled_short,
+    refunded: STATE.lang === 'ru' ? 'Возврат средств' : 'Refunded'
+  };
+  const colorMap = {
+    pending: '#7c3aed',
+    sent: '#2ecc71',
+    completed: '#3498db',
+    cancelled: '#ff4d4d',
+    refunded: '#ff4d4d'
+  };
+
+  const statusLabel = labelMap[tx.status] || tx.status;
+  const statusColor = colorMap[tx.status] || '#7c3aed';
+
+  const inner = `
+    <h2 style="margin-bottom:16px;display:flex;align-items:center;gap:10px">
+      🧾 ${STATE.lang==='ru'?'Чек транзакции':'Transaction receipt'}
+    </h2>
+
+    <div style="background:rgba(255,255,255,0.03);padding:16px;border-radius:12px;">
+
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="color:var(--muted)">${STATE.lang==='ru'?'Статус':'Status'}</span>
+        <span style="font-weight:600;color:${statusColor}">${statusLabel}</span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="color:var(--muted)">${STATE.lang==='ru'?'Сумма':'Amount'}</span>
+        <span style="font-weight:600">${tx.amount} ${tx.ticker} + ${tx.fee} ${tx.ticker} fee</span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="color:var(--muted)">${STATE.lang==='ru'?'Сеть':'Network'}</span>
+        <span style="font-weight:600">${tx.net}</span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;align-items:center">
+        <span style="color:var(--muted)">${STATE.lang==='ru'?'Адрес получателя':'Recipient address'}</span>
+        <span 
+          style="font-weight:600;text-align:right;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" 
+          title="${tx.to}">
+          ${tx.to.length > 16 ? tx.to.slice(0,8) + '...' + tx.to.slice(-6) : tx.to}
+        </span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="color:var(--muted)">ID</span>
+        <span style="font-weight:600">${tx.internalId}</span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="color:var(--muted)">${STATE.lang==='ru'?'Дата':'Date'}</span>
+        <span style="font-weight:600">${new Date(tx.createdAt).toLocaleString()}</span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between">
+        <span style="color:var(--muted)">${STATE.lang==='ru'?'Хэш':'Hash'}</span>
+        <a href="https://tronscan.org/#/transaction/${tx.hash}" target="_blank" 
+           style="font-weight:600;color:#4da3ff;text-decoration:none">
+          ${tx.hash.slice(0,6)}...${tx.hash.slice(-6)}
+        </a>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:20px;display:flex;gap:12px">
+      <button class="btn" style="flex:1;background:#444" id="receipt-back">
+        ${STATE.lang==='ru'?'Назад':'Back'}
+      </button>
+      <button class="btn" style="flex:1;background:#2ecc71" id="btn-close">
+        ${STATE.lang==='ru'?'Закрыть':'Close'}
+      </button>
+    </div>
+  `;
+
+  showModal(inner, 'receipt', { id: tx.id });
+
+  // Назад → возвращаемся в Transaction details
+  document.getElementById('receipt-back').addEventListener('click', ()=> {
+    openTransactionDetails(tx);
+  });
+
+  // Закрыть
+  document.getElementById('btn-close').addEventListener('click', closeModal);
+}
+
+
+
+
+
+
+
+
+
+function openAssetModal(t){
+  STATE.selectedAsset = t;
+  const fullname = CONFIG.fullNames[t] || t;
+
+  let balanceHtml = '';
+  if (typeof STATE.balances[t] === 'object') {
+    const total = Object.values(STATE.balances[t]).reduce((a,b)=>a+b,0);
+    balanceHtml += `<div style="margin-bottom:12px">
+      <strong>${STR[STATE.lang].total} ${fullname}:</strong> ${total.toFixed(2)} ${t}
+    </div>`;
+    balanceHtml += `<div style="margin-bottom:12px">`;
+    Object.keys(STATE.balances[t]).forEach(net=>{
+      balanceHtml += `
+        <div style="font-size:14px; margin:4px 0; padding:6px 10px; background:rgba(255,255,255,0.04); border-radius:8px">
+          <strong>${net}</strong>: ${STATE.balances[t][net].toFixed(2)} ${t}
+        </div>`;
+    });
+    balanceHtml += `</div>`;
+  } else {
+    balanceHtml = `<div style="margin-bottom:12px">${STR[STATE.lang].balance} ${fullname}: ${formatAsset(STATE.balances[t],t)}</div>`;
+  }
+
+  const inner = `
+    <h2>${t}</h2>
+    ${balanceHtml}
+    <div style='display:flex;gap:8px'>
+      <button class='btn' id='modal-deposit'>${STR[STATE.lang].deposit}</button>
+      <button class='btn' id='modal-withdraw'>${STR[STATE.lang].withdraw}</button>
+    </div>
+    <div class='btn-row' style='margin-top:14px;justify-content:flex-end;display:flex'>
+      <button class='btn' style='background:#444' id='modal-close'>${STR[STATE.lang].close}</button>
+    </div>`;
+
+  showModal(inner, 'asset', {ticker:t});
+
+  // 🔹 Навешиваем обработчики только после того, как модалка реально в DOM
+  setTimeout(()=>{
+    const depBtn = document.getElementById('modal-deposit');
+    const wdBtn  = document.getElementById('modal-withdraw');
+    const closeBtn = document.getElementById('modal-close');
+    if(depBtn) depBtn.onclick = ()=> showDeposit(t);
+    if(wdBtn) wdBtn.onclick = ()=> showWithdraw(t);
+    if(closeBtn) closeBtn.onclick = closeModal;
+  },0);
+}
+
+
+
+
+function showDeposit(t){ 
+  const nets = CONFIG.networks[t] || []; 
+  let netButtons = '';
+  if(nets.length>0){ 
+    netButtons = `<div class='networks'>${nets.map((n,i)=>`<button class='net-btn ${i===0?'active':''}' data-net='${n}'>${n}</button>`).join('')}</div>`; 
+  }
+
+  const inner = `
+    <div style="margin-bottom:12px">
+      <button id="go-back" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">
+        ← ${STATE.lang==='ru'?'Назад':'Back'}
+      </button>
+    </div>
+    <h2>${STR[STATE.lang].deposit} ${t}</h2>
+    ${netButtons}
+    <div style='margin-top:12px'>${STR[STATE.lang].use_addr}:</div>
+
+    <div class="qr-wrapper" style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px">
+      <div id="qr-wrap" class="qr-box" style="padding:12px;background:white;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,0.4)"></div>
+      <div class="addr-box" style="display:flex;gap:10px;width:100%">
+        <div class="addr-text" id="dep-addr" 
+             style="flex:1;background:rgba(255,255,255,0.06);padding:10px 12px;border-radius:10px;
+             font-size:14px;word-break:break-all"></div>
+        <button id="copy-addr" class="copy-btn" 
+          style="padding:8px 14px;border:none;border-radius:8px;background:#4da3ff;color:white;cursor:pointer;font-weight:600">
+          Copy
+        </button>
+      </div>
+    </div>
+
+    <div class='btn-row' style="margin-top:18px">
+      <button class='btn' style='background:#444' id='dep-close'>${STR[STATE.lang].close}</button>
+    </div>`;
+
+  showModal(inner, 'deposit', {ticker:t, net: nets.length>0?nets[0]:null});
+
+  document.getElementById('go-back').addEventListener('click', ()=> openAssetModal(t));
+  if(nets.length>0){ 
+    document.querySelectorAll('.net-btn').forEach(btn=>btn.addEventListener('click', (e)=>{
+      document.querySelectorAll('.net-btn').forEach(b=>b.classList.remove('active')); 
+      btn.classList.add('active'); 
+      updateDepositAddress(t, btn.dataset.net); 
+    })); 
+  }
+  document.getElementById('dep-close').addEventListener('click', closeModal);
+
+  updateDepositAddress(t, (nets.length>0?nets[0]:null));
+}
+
+
+function updateDepositAddress(t, net) {
+  const keyNet = net || null;
+  const addr = getWalletAddress(t, keyNet);
+  const addrEl = document.getElementById('dep-addr');
+  const qrWrap = document.getElementById('qr-wrap');
+  if (addrEl) addrEl.textContent = addr;
+  if (qrWrap) {
+    qrWrap.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    canvas.id = 'qrcode';
+    canvas.width = 260;
+    canvas.height = 260;
+    qrWrap.appendChild(canvas);
+    new QRious({
+      element: canvas,
+      value: addr,
+      size: 260,
+      background: 'white',
+      foreground: 'black'
+    });
+  }
+}
+
+
+
+
+function showWithdraw(t){
+  const nets = CONFIG.networks[t] || [];
+  let activeNet = nets.length > 0 ? nets[0] : "Mainnet";
+
+  const getBalance = (ticker, net)=>{
+    if(typeof STATE.balances[ticker] === 'object'){
+      return STATE.balances[ticker][net] || 0;
+    }
+    return STATE.balances[ticker];
+  };
+
+  let netButtons='';
+  if(nets.length>0){
+    netButtons = `<div class='networks'>${nets.map((n,i)=>
+      `<button class='net-btn ${i===0?'active':''}' data-net='${n}'>${n}</button>`
+    ).join('')}</div>`;
+  }
+
+  // 🔹 вот это окно формы вывода
+  const inner = `
+    <div style="margin-bottom:12px">
+      <button id="go-back" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">
+        ← ${STATE.lang==='ru'?'Назад':'Back'}
+      </button>
+    </div>
+    <h2>${STR[STATE.lang].withdraw} ${t}</h2>
+    ${netButtons}
+    <div style='margin-top:12px;font-size:14px;color:var(--muted)'>
+      ${STR[STATE.lang].balance}: 
+      <span id="wd-balance">${getBalance(t,activeNet).toFixed(2)} ${t}</span>
+    </div>
+
+    <div style='margin-top:12px'>${STR[STATE.lang].recipient}:</div>
+    <input type='text' id='wd-addr' placeholder='Address' 
+      style='width:100%;padding:10px;border-radius:8px;
+      background:transparent;border:1px solid rgba(255,255,255,0.06)' />
+
+    <div style='margin-top:12px'>${STR[STATE.lang].amount}:</div>
+    <input type='number' id='wd-amt' placeholder='0.00' 
+      style='width:100%;padding:10px;border-radius:8px;
+      background:transparent;border:1px solid rgba(255,255,255,0.06)' />
+
+    <div style='margin-top:12px;font-size:13px;color:#f39c12'>
+      ${STATE.lang==='ru' ? 'Комиссия: 6.5 USDT' : 'Commission: 6.5 USDT'}
+    </div>
+
+    <div style='margin-top:12px;font-size:13px;color:var(--muted)'>
+      ${STR[STATE.lang].send_warning}
+    </div>
+
+    <div class='btn-row'>
+      <button class='btn' style='background:#444' id='wd-cancel'>${STR[STATE.lang].close}</button>
+      <button class='btn' id='wd-send'>${STR[STATE.lang].send}</button>
+    </div>
+  `;
+
+  showModal(inner, 'withdraw', {ticker:t, net:activeNet});
+
+  document.getElementById('go-back').addEventListener('click', ()=> openAssetModal(t));
+
+  if(nets.length>0){
+    document.querySelectorAll('.net-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        document.querySelectorAll('.net-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        STATE.currentModal.net = btn.dataset.net;
+        $('wd-balance').textContent = getBalance(t,btn.dataset.net).toFixed(2)+" "+t;
+      });
+    });
+  }
+
+  document.getElementById('wd-cancel').addEventListener('click', closeModal);
+  document.getElementById('wd-send').addEventListener('click', ()=> {
+    const amt = Number(document.getElementById('wd-amt').value || 0); 
+    const addr = document.getElementById('wd-addr').value || ''; 
+    const net = STATE.currentModal.net || "Mainnet";
+    const bal = getBalance(t, net);
+
+    const minRequired = 5 + 6.5; // минимум 11.5
+
+    if(bal < minRequired){
+      showMessage(STATE.lang==='ru'
+        ? 'Для вывода необходимо иметь минимум 11.5 USDT на балансе'
+        : 'You must have at least 11.5 USDT balance to withdraw');
+      return;
+    }
+
+    if(!amt || amt<=0){ 
+      showMessage(STATE.lang==='ru'?'Введите положительную сумму':'Enter a positive amount'); 
+      return; 
+    }
+
+    if(amt + 6.5 > bal){ 
+      showMessage(STATE.lang==='ru'?'Недостаточно средств (включая комиссию)':'Insufficient balance (including fee)'); 
+      return; 
+    }
+
+    const addrShort = addr.length > 10 ? (addr.slice(0,6) + "..." + addr.slice(-4)) : addr;
+    const fullname = CONFIG.fullNames[t] || t;
+
+    // 🔹 вот здесь confirmHtml
+    const confirmHtml = `
+      <h2>${STATE.lang==='ru'?'Подтверждение':'Confirmation'}</h2>
+      <div style="background:rgba(255,255,255,0.04);padding:12px 16px;border-radius:10px;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--muted)">${STATE.lang==='ru'?'Криптовалюта':'Asset'}</div>
+        <div style="font-weight:600">${fullname} (${t})</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);padding:12px 16px;border-radius:10px;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--muted)">${STATE.lang==='ru'?'Сумма':'Amount'}</div>
+        <div style="font-weight:600">${amt} ${t} + 6.5 ${t} fee</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);padding:12px 16px;border-radius:10px;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--muted)">${STATE.lang==='ru'?'Сеть':'Network'}</div>
+        <div style="font-weight:600">${net}</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);padding:12px 16px;border-radius:10px">
+        <div style="font-size:12px;color:var(--muted)">${STATE.lang==='ru'?'Кошелёк получателя':'Recipient address'}</div>
+        <div style="font-weight:600">${addrShort}</div>
+      </div>
+      <div class="btn-row" style="margin-top:20px;display:flex;gap:12px">
+        <button class="btn" style="flex:1;background:#444" id="btn-no">${STATE.lang==='ru'?'Отмена':'Cancel'}</button>
+        <button class="btn" style="flex:1;background:#2ecc71" id="btn-yes">${STATE.lang==='ru'?'Подтвердить':'Confirm'}</button>
+      </div>
+    `;
+    showModal(confirmHtml, 'confirm', {ticker:t, net:net, addr:addr, amt:amt});
+
+    document.getElementById('btn-no').addEventListener('click', ()=> showWithdraw(t));
+    document.getElementById('btn-yes').addEventListener('click', ()=> simulateSend(t, net, amt, addr));
+  });
+}
+
+
+
+
+function simulateSend(t, net, amt, addr){
+  const fee = 6.5; // фиксированная комиссия
+  const getBalance = () => (typeof STATE.balances[t] === 'object' ? STATE.balances[t][net] : STATE.balances[t]);
+  const bal = getBalance();
+
+  if(amt + fee < 11.5){
+    showMessage(STATE.lang==='ru'
+      ? 'Минимальная сумма вывода 5 USDT + комиссия 6.5 USDT'
+      : 'Minimum withdrawal is 5 USDT + 6.5 USDT fee');
+    return;
+  }
+  if(amt + fee > bal){
+    showMessage(STATE.lang==='ru'?'Недостаточно средств':'Insufficient balance');
+    return;
+  }
+
+  // списываем баланс
+  if(typeof STATE.balances[t] === 'object'){
+    STATE.balances[t][net] = Number((bal - (amt + fee)).toFixed(8));
+  } else {
+    STATE.balances[t] = Number((bal - (amt + fee)).toFixed(8));
+  }
+
+  // генерим данные для транзы
+  const randomId = "#W" + Math.floor(1000000 + Math.random()*9000000);
+  const hash = "4d860ed3a15907ca7792e9b8557ac53129db6ba591a3fa6d905690dcf91e8751";
+
+  const tx = {
+    id: Date.now(),
+    ticker: t,
+    net: net,
+    amount: amt,
+    fee: fee,
+    to: addr,
+    status: "pending",
+    createdAt: Date.now(),
+    expiresAt: Date.now() + (30 * 60 * 1000), // 30 минут на отмену
+    internalId: randomId,
+    hash: hash
+  };
+
+  STATE.transactions.unshift(tx);
+  if(STATE.transactions.length > 50) STATE.transactions.pop(); // безопасный потолок
+
+  renderAssets();
+  updateTotal();
+  renderTransactions();
+
+  // открываем детали один раз
+  openTransactionDetails(tx);
+
+  // Таймеры жизненного цикла транзакции:
+  STATE.txTimers[tx.id] = {};
+  STATE.txTimers[tx.id].toSent = setTimeout(()=>{
+    if(tx.status === 'pending'){ tx.status = 'sent'; renderTransactions(); }
+  }, 12000);
+
+  STATE.txTimers[tx.id].toCompleted = setTimeout(()=>{
+    if(tx.status !== 'cancelled' && tx.status !== 'refunded'){ 
+      tx.status = 'completed'; 
+      renderTransactions(); 
+    }
+  }, 35000);
+}
+
+function renderTransactions(){
+  const list = $('tx-list');
+  if(STATE.transactions.length === 0){
+    list.innerHTML = `<div style="color:var(--muted);font-size:14px">${STR[STATE.lang].no_tx}</div>`;
+    return;
+  }
+  list.innerHTML = '';
+  STATE.transactions.forEach(tx=>{
+    const row = document.createElement('div');
+    row.style.cssText = "padding:10px;border-bottom:1px solid rgba(255,255,255,0.06);cursor:pointer;display:flex;justify-content:space-between;align-items:center";
+
+    const labelMap = {
+      pending: STR[STATE.lang].tx_pending,
+      sent: STATE.lang === 'ru' ? 'Отправлено' : 'Sent',
+      completed: STATE.lang === 'ru' ? 'Завершено' : 'Completed',
+      cancelled: STR[STATE.lang].tx_cancelled_short,
+      refunded: STATE.lang==='ru' ? 'Возврат средств' : 'Refunded'
+    };
+    const colorMap = {
+      pending: '#7c3aed',
+      sent: '#2ecc71',
+      completed: '#3498db',
+      cancelled: '#ff4d4d',
+      refunded: '#ff4d4d'
+    };
+
+    const statusLabel = labelMap[tx.status] || tx.status;
+    const statusColor = colorMap[tx.status] || '#7c3aed';
+
+    row.innerHTML = `
+      <div>
+        <strong>${tx.ticker}</strong> • ${tx.amount} ${tx.ticker} → ${tx.to.slice(0,6)}...
+      </div>
+      <div style="font-size:12px;color:${statusColor}">${statusLabel}</div>
+    `;
+    row.addEventListener('click', ()=> openTransactionDetails(tx));
+    list.appendChild(row);
+  });
+}
+
+
+function animateNumber(el, from, to, duration=800) {
+  const start = performance.now();
+  const isIncrease = to > from;
+
+  // подсветка + тень
+  el.style.transition = "color 0.3s ease, text-shadow 0.3s ease";
+  if (isIncrease) {
+    el.style.color = "#2ecc71";
+    el.style.textShadow = "0 0 12px rgba(46,204,113,0.8)";
+  } else {
+    el.style.color = "#e74c3c";
+    el.style.textShadow = "0 0 12px rgba(231,76,60,0.8)";
+  }
+
+  function step(ts) {
+    const progress = Math.min((ts - start) / duration, 1);
+    const val = from + (to - from) * progress;
+    el.textContent = '$' + val.toFixed(2);
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    } else {
+      // мягкое затухание свечения
+      el.style.transition = "color 0.8s ease, text-shadow 1s ease";
+      el.style.color = "#e6eef8";
+      el.style.textShadow = "0 0 0 rgba(0,0,0,0)";
+    }
+  }
+
+  requestAnimationFrame(step);
+}
+
+
+
+
+function updateTotal(animated = true){
+  let tot = 0;
+
+  Object.keys(STATE.balances).forEach(t=>{
+    if(typeof STATE.balances[t] === 'object'){
+      Object.values(STATE.balances[t]).forEach(v=>{ tot += usdValue(t, v); });
+    } else {
+      tot += usdValue(t, STATE.balances[t]);
+    }
+  });
+
+  const el = $('ui-total');
+  const current = parseFloat(el.textContent.replace(/[^0-9.-]/g,"")) || 0;
+
+  if(animated){
+    animateNumber(el, current, tot, 1000);
+  } else {
+    el.textContent = '$' + tot.toFixed(2);
+  }
+}
+
+
+
+function setLang(lang){ STATE.lang = lang; // update static texts
+  if(lang==='ru'){
+    $('login-title').textContent='Крипто кошелек';
+    $('login-sub').textContent='Войдите под своими данными.';
+    $('btn-login').textContent='Войти';
+    $('welcome').textContent='Добро пожаловать,';
+    $('btn-logout').textContent='Выйти';
+    $('balance-label').textContent='Общий баланс';
+  } else {
+    $('login-title').textContent='Crypto wallet';
+    $('login-sub').textContent='Sign in with your credentials.';
+    $('btn-login').textContent='Sign in';
+    $('welcome').textContent='Welcome,';
+    $('btn-logout').textContent='Logout';
+    $('balance-label').textContent='Total balance';
+  }
+  // re-render UI strings
+  renderAssets();
+  // if a modal is open, re-open it so its text updates
+  if(STATE.currentModal){ const cm = STATE.currentModal; if(cm.type==='asset') openAssetModal(cm.ticker); else if(cm.type==='deposit') showDeposit(cm.ticker); else if(cm.type==='withdraw') showWithdraw(cm.ticker); }
+}
+
+function closeModal(){
+  const container = $('modal');
+  if(!container || !container.firstChild) return;
+
+  const back = container.firstChild; // modal-back
+  const modal = back.querySelector('.modal');
+
+  if(modal){
+    modal.style.animation = "scaleOut 0.2s ease forwards";
+    back.style.animation = "fadeOut 0.2s ease forwards";
+    setTimeout(()=>{
+      container.style.display = 'none';
+      container.innerHTML = '';
+      STATE.currentModal = null;
+    }, 200); // время = длительности анимации
+  } else {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    STATE.currentModal = null;
+  }
+}
+
+
+function showMessage(msg){
+  const toast = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.style.cssText = `
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: fadeIn 0.3s ease;
+  `;
+  el.textContent = msg;
+  toast.appendChild(el);
+
+  // Автоисчезновение
+  setTimeout(()=>{
+    el.style.transition = "opacity 0.5s";
+    el.style.opacity = "0";
+    setTimeout(()=> el.remove(), 500);
+  }, 3000);
+}
+
+
+</script>
+
+<div id="toast" style="position:fixed;bottom:20px;right:20px;z-index:2000;"></div>
+
+
+</body>
+</html>
