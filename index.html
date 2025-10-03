@@ -434,7 +434,7 @@ let STATE = {
 
 window.addEventListener('DOMContentLoaded', async ()=>{
   try {
-    const res = await fetch('users.json'); // грузим из файла
+    const res = await fetch('users.json?ts=' + Date.now());
     const data = await res.json();
     CONFIG.users = data.users; // закидываем в CONFIG
   } catch (err) {
