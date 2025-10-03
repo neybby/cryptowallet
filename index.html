@@ -220,6 +220,64 @@ input[type=number] {
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
     @media(max-width:880px){.assets{grid-template-columns:1fr}.modal{width:92%}}
+
+/* ==== MOBILE FRIENDLY FIXES ==== */
+
+/* Чтобы иконки криптовалют не сплющивались */
+.coin-circle {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
+
+/* Хедер кошелька — логотип + баланс + logout */
+.wallet-header {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.wallet-header button {
+  white-space: nowrap;
+}
+
+/* Балансы — на мобиле в колонку */
+@media (max-width: 600px) {
+  .balances {
+    flex-direction: column;
+  }
+  .asset {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px;
+  }
+  .asset .left {
+    margin-bottom: 8px;
+  }
+}
+
+/* Модалки — адаптивные */
+@media (max-width: 880px) {
+  .modal {
+    width: 92%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal {
+    width: 95%;
+    padding: 16px;
+    border-radius: 12px;
+  }
+  .btn {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  h2 {
+    font-size: 18px;
+  }
+}
+
+
+
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
 </head>
@@ -838,16 +896,11 @@ function showDeposit(t){
     ${netButtons}
     <div style='margin-top:12px'>${STR[STATE.lang].use_addr}:</div>
 
-    <div class="qr-wrapper" style="display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:14px">
-      <div id="qr-wrap" class="qr-box" style="padding:12px;background:white;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,0.4)"></div>
-      <div class="addr-box" style="display:flex;gap:10px;width:100%">
-        <div class="addr-text" id="dep-addr" 
-             style="flex:1;background:rgba(255,255,255,0.06);padding:10px 12px;border-radius:10px;
-             font-size:14px;word-break:break-all"></div>
-        <button id="copy-addr" class="copy-btn" 
-          style="padding:8px 14px;border:none;border-radius:8px;background:#4da3ff;color:white;cursor:pointer;font-weight:600">
-          Copy
-        </button>
+    <div class="qr-wrapper">
+      <div id="qr-wrap" class="qr-box"></div>
+      <div class="addr-box">
+        <div class="addr-text" id="dep-addr"></div>
+        <button id="copy-addr" class="copy-btn">Copy</button>
       </div>
     </div>
 
@@ -857,18 +910,38 @@ function showDeposit(t){
 
   showModal(inner, 'deposit', {ticker:t, net: nets.length>0?nets[0]:null});
 
+  // кнопка назад
   document.getElementById('go-back').addEventListener('click', ()=> openAssetModal(t));
+  // кнопка закрыть
+  document.getElementById('dep-close').addEventListener('click', closeModal);
+
+  // выбор сети
   if(nets.length>0){ 
-    document.querySelectorAll('.net-btn').forEach(btn=>btn.addEventListener('click', (e)=>{
+    document.querySelectorAll('.net-btn').forEach(btn=>btn.addEventListener('click', ()=>{
       document.querySelectorAll('.net-btn').forEach(b=>b.classList.remove('active')); 
       btn.classList.add('active'); 
       updateDepositAddress(t, btn.dataset.net); 
     })); 
   }
-  document.getElementById('dep-close').addEventListener('click', closeModal);
 
+  // копирование адреса 🔹
+  const copyBtn = document.getElementById('copy-addr');
+  copyBtn.addEventListener('click', ()=>{
+    const addr = document.getElementById('dep-addr').textContent;
+    navigator.clipboard.writeText(addr).then(()=>{
+      copyBtn.classList.add("copied");
+      copyBtn.textContent = STATE.lang==='ru' ? "Скопировано" : "Copied";
+      setTimeout(()=>{
+        copyBtn.classList.remove("copied");
+        copyBtn.textContent = "Copy";
+      },1500);
+    });
+  });
+
+  // сразу отрисовать адрес и QR
   updateDepositAddress(t, (nets.length>0?nets[0]:null));
 }
+
 
 
 function updateDepositAddress(t, net) {
