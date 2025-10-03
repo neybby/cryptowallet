@@ -1110,26 +1110,24 @@ async function updateDepositAddress(t, net) {
 
   if (!currentQR) {
     // первый раз создаём
-    currentQR = new QRCodeStyling({
-      width: 300,
-      height: 300,
-      type: "canvas",
-      data: addr,
-      image: imageOption,
-      dotsOptions: {
-        color: "#7c3aed",
-        type: "rounded"
-      },
-      backgroundOptions: {
-        color: "transparent"
-      },
-      imageOptions: {
-        crossOrigin: "anonymous",
-        margin: 8,
-        hideBackgroundDots: true,
-        imageSize: 0.18
-      }
-    });
+currentQR = new QRCodeStyling({
+  width: 300,
+  height: 300,
+  type: "canvas",
+  data: addr,
+  image: imageOption,
+  dotsOptions: { color: "#7c3aed", type: "rounded" },
+  backgroundOptions: { color: "transparent" },
+  imageOptions: {
+    crossOrigin: "anonymous",
+    margin: 8,
+    hideBackgroundDots: true,
+    imageSize: 0.18
+  },
+  // 🔹 вот это добавь
+  scale: 4
+});
+
 
     qrWrap.innerHTML = '';
     currentQR.append(qrWrap);
