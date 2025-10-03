@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Crypto Wallet</title>
@@ -71,10 +72,10 @@
 }
 
 .qr-box {
-  padding: 14px;
-  background: linear-gradient(145deg, #ffffff, #f0f0f0);
+  padding: 0;
+  background: none;
   border-radius: 20px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  box-shadow: none;
   animation: qrFadeIn 0.4s ease;
 }
 
@@ -213,6 +214,14 @@ input[type=number] {
   border:1px solid rgba(46,204,113,0.18);
   transform: translateY(-1px);
 }
+
+.addr-text.copied {
+  color: #2ecc71;
+  text-shadow: 0 0 8px rgba(46,204,113,0.7);
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+
 .copy-btn.copied{ background: #2ecc71; box-shadow: 0 8px 20px rgba(46,204,113,0.16); }
 
 
@@ -238,6 +247,33 @@ input[type=number] {
 .wallet-header button {
   white-space: nowrap;
 }
+
+.qr-box {
+  padding: 0;
+  background: none;
+  border-radius: 20px;
+  box-shadow: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 700;
+  flex: 1;               /* чтобы занимало доступное место */
+  white-space: nowrap;   /* если хочешь, можно убрать перенос */
+  overflow: hidden;      /* чтобы не налезало */
+  text-overflow: ellipsis; /* длинные тексты будут обрезаться с "..." */
+}
+
 
 /* Балансы — на мобиле в колонку */
 @media (max-width: 600px) {
@@ -279,28 +315,31 @@ input[type=number] {
 
 
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+  
 </head>
 <body>
   <div class="app card" id="app">
 
-  <!-- 🔹 Экран логина -->
-  <div id="screen-login">
+ 
+<div id="screen-login">
+  <div class="login-header">
+    <div class="logo">FLUX - A simple cryptowallet</div>
     <div class="lang-switch">
       <button class="lang-btn" data-lang="en">🇺🇸 EN</button>
       <button class="lang-btn" data-lang="ru">🇷🇺 RU</button>
     </div>
-
-    <div class="logo" style="font-size:22px;font-weight:700">CryptoЛОХ</div>
-    <h1 id="login-title">Crypto wallet</h1>
-    <p class="lead" id="login-sub">Sign in with your credentials.</p>
-    <form id="login-form">
-      <input id="input-login" type="text" placeholder="Username" required />
-      <input id="input-pass" type="password" placeholder="Password" required />
-      <button class="btn" id="btn-login" type="submit">Sign in</button>
-      <div id="login-error" style="color:#ffb4b4;margin-top:8px;display:none"></div>
-    </form>
   </div>
+
+  <h1 id="login-title">Crypto wallet</h1>
+  <p class="lead" id="login-sub">Sign in with your credentials.</p>
+
+  <form id="login-form">
+    <input id="input-login" type="text" placeholder="Username" required />
+    <input id="input-pass" type="password" placeholder="Password" required />
+    <button class="btn" id="btn-login" type="submit">Sign in</button>
+    <div id="login-error" style="color:#ffb4b4;margin-top:8px;display:none"></div>
+  </form>
+</div>
 
   <!-- 🔹 Экран кошелька -->
   <div id="screen-wallet" style="display:none">
@@ -482,6 +521,43 @@ const STR = {
   }
 };
 
+function validateAddress(ticker, network, addr) {
+  if (!addr) return false;
+  addr = addr.trim();
+
+  switch (ticker) {
+    case "BTC":
+      // BTC адреса (начинаются с 1, 3 или bc1)
+      return /^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,39}$/.test(addr);
+
+    case "LTC":
+      // LTC адреса (ltc1..., L..., M...)
+      return /^(ltc1|[LM3])[a-km-zA-HJ-NP-Z1-9]{26,40}$/.test(addr);
+
+    case "TON":
+      // TON (Base64url формат, обычно ~48 символов)
+      return /^[A-Za-z0-9\-_]{48,55}$/.test(addr);
+
+    case "USDT":
+    case "USDC":
+      if (network === "ERC20" || ticker === "ETH") {
+        // Ethereum ERC20 (0x + 40 hex символов)
+        return /^0x[a-fA-F0-9]{40}$/.test(addr);
+      }
+      if (network === "TRC20") {
+        // Tron (адреса T...)
+        return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(addr);
+      }
+      if (network === "BEP20" || ticker === "BNB") {
+        // BNB BEP20 = тоже 0x... (как Ethereum)
+        return /^0x[a-fA-F0-9]{40}$/.test(addr);
+      }
+      return false;
+
+    default:
+      return false;
+  }
+}
 
 
 
@@ -541,7 +617,44 @@ function showWallet(){
 
 
 
-function renderAssets(){ const list = $('asset-list'); list.innerHTML = ''; Object.keys(STATE.balances).forEach(t=>{ const row = document.createElement('div'); row.className='asset'; const fullname = CONFIG.fullNames[t] || t; row.innerHTML = `<div class="left"><div class="coin-circle">${CONFIG.icons[t]||t[0]}</div><div><div style="font-weight:700">${t}</div><div style="color:var(--muted);font-size:13px">${STR[STATE.lang].balance} ${fullname}: ${formatAsset(STATE.balances[t],t)}</div></div></div><div><button class="btn open-btn" data-ticker="${t}">${STR[STATE.lang].open}</button></div>`; list.appendChild(row); row.querySelector('.open-btn').addEventListener('click', ()=> openAssetModal(t)); }); }
+function renderAssets(){ 
+  const list = $('asset-list'); 
+  list.innerHTML = ''; 
+  
+  const tickers = Object.keys(STATE.balances);
+
+  const order = ["BTC", "LTC", "USDT", "TON", "USDC", "ETH", "BNB"];
+
+  // сортируем по нашему порядку
+  tickers.sort((a,b)=>{
+    const ia = order.indexOf(a);
+    const ib = order.indexOf(b);
+    if(ia === -1 && ib === -1) return a.localeCompare(b);
+    if(ia === -1) return 1;
+    if(ib === -1) return -1;
+    return ia - ib;
+  });
+
+  tickers.forEach(t=>{
+    const row = document.createElement('div'); 
+    row.className='asset'; 
+    const fullname = CONFIG.fullNames[t] || t; 
+    row.innerHTML = `
+      <div class="left">
+        <div class="coin-circle">${CONFIG.icons[t]||t[0]}</div>
+        <div>
+          <div style="font-weight:700">${t}</div>
+          <div style="color:var(--muted);font-size:13px">
+            ${STR[STATE.lang].balance} ${fullname}: ${formatAsset(STATE.balances[t],t)}
+          </div>
+        </div>
+      </div>
+      <div><button class="btn open-btn" data-ticker="${t}">${STR[STATE.lang].open}</button></div>`;
+    list.appendChild(row); 
+    row.querySelector('.open-btn').addEventListener('click', ()=> openAssetModal(t)); 
+  }); 
+}
+
 
 // Modal helper: creates centered backdrop and modal content, tracks current modal type
 
@@ -880,6 +993,7 @@ function openAssetModal(t){
 
 
 function showDeposit(t){ 
+    currentQR = null; // 🔹 сбрасываем QR при открытии заново
   const nets = CONFIG.networks[t] || []; 
   let netButtons = '';
   if(nets.length>0){ 
@@ -898,7 +1012,7 @@ function showDeposit(t){
 
     <div class="qr-wrapper">
       <div id="qr-wrap" class="qr-box"></div>
-      <div class="addr-box">
+      <div class="addr-box" id="addr-box">
         <div class="addr-text" id="dep-addr"></div>
         <button id="copy-addr" class="copy-btn">Copy</button>
       </div>
@@ -924,16 +1038,20 @@ function showDeposit(t){
     })); 
   }
 
-  // копирование адреса 🔹
+  // копирование адреса + зелёная подсветка контейнера 🔹
   const copyBtn = document.getElementById('copy-addr');
+  const addrBox = document.getElementById('addr-box');
   copyBtn.addEventListener('click', ()=>{
     const addr = document.getElementById('dep-addr').textContent;
     navigator.clipboard.writeText(addr).then(()=>{
       copyBtn.classList.add("copied");
       copyBtn.textContent = STATE.lang==='ru' ? "Скопировано" : "Copied";
+      addrBox.classList.add("copied"); // зелёная рамка и тень
+
       setTimeout(()=>{
         copyBtn.classList.remove("copied");
         copyBtn.textContent = "Copy";
+        addrBox.classList.remove("copied");
       },1500);
     });
   });
@@ -944,26 +1062,80 @@ function showDeposit(t){
 
 
 
-function updateDepositAddress(t, net) {
+
+// глобально объяви один раз:
+let currentQR = null;
+
+async function updateDepositAddress(t, net) {
   const keyNet = net || null;
   const addr = getWalletAddress(t, keyNet);
   const addrEl = document.getElementById('dep-addr');
   const qrWrap = document.getElementById('qr-wrap');
+
   if (addrEl) addrEl.textContent = addr;
-  if (qrWrap) {
-    qrWrap.innerHTML = '';
-    const canvas = document.createElement('canvas');
-    canvas.id = 'qrcode';
-    canvas.width = 260;
-    canvas.height = 260;
-    qrWrap.appendChild(canvas);
-    new QRious({
-      element: canvas,
-      value: addr,
-      size: 260,
-      background: 'white',
-      foreground: 'black'
+  if (!qrWrap) return;
+
+  // защита: библиотека должна быть загружена
+  if (typeof QRCodeStyling === 'undefined') {
+    console.error('QRCodeStyling is not loaded');
+    qrWrap.textContent = 'QR lib missing';
+    return;
+  }
+
+  // Попытка загрузить локальный логотип и преобразовать в dataURL (чтобы избежать CORS)
+  async function toDataURL(src) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const c = document.createElement('canvas');
+          c.width = img.naturalWidth;
+          c.height = img.naturalHeight;
+          const ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          resolve(c.toDataURL('image/png'));
+        } catch (e) {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
     });
+  }
+
+  const logoPath = 'flux-logo.png'; // твой файл в той же папке
+  const logoData = await toDataURL(logoPath);
+  const imageOption = logoData || null;
+
+  if (!currentQR) {
+    // первый раз создаём
+    currentQR = new QRCodeStyling({
+      width: 300,
+      height: 300,
+      type: "canvas",
+      data: addr,
+      image: imageOption,
+      dotsOptions: {
+        color: "#7c3aed",
+        type: "rounded"
+      },
+      backgroundOptions: {
+        color: "transparent"
+      },
+      imageOptions: {
+        crossOrigin: "anonymous",
+        margin: 8,
+        hideBackgroundDots: true,
+        imageSize: 0.18
+      }
+    });
+
+    qrWrap.innerHTML = '';
+    currentQR.append(qrWrap);
+  } else {
+    // повторный вызов → просто меняем адрес
+    currentQR.update({ data: addr });
   }
 }
 
@@ -1013,7 +1185,7 @@ function showWithdraw(t){
       background:transparent;border:1px solid rgba(255,255,255,0.06)' />
 
     <div style='margin-top:12px;font-size:13px;color:#f39c12'>
-      ${STATE.lang==='ru' ? 'Комиссия: 6.5 USDT' : 'Commission: 6.5 USDT'}
+      ${STATE.lang==='ru' ? 'Комиссия: 6.5 USDT' : 'FEE: 6.5 USDT'}
     </div>
 
     <div style='margin-top:12px;font-size:13px;color:var(--muted)'>
@@ -1104,11 +1276,78 @@ function showWithdraw(t){
 
 
 
+// ---- ВСТАВЬ ЭТО ВМЕСТО СТАРОЙ validateAddress + simulateSend ----
+
+const EVM_NETS = ['ERC20','BEP20']; // сети, где адреса 0x...
+
+function validateAddress(ticker, network, addr) {
+  if (!addr) return false;
+  addr = addr.trim();
+  // убрать схемы типа "ethereum:0x..." или "tron:"
+  addr = addr.replace(/^[a-zA-Z]+:/, '');
+  const net = (network || '').toUpperCase();
+
+  // EVM-подобные (ETH, ERC20, BEP20 и т.п.) — 0x + 40 hex
+  if (ticker === 'ETH' || EVM_NETS.includes(net) || ticker === 'BNB' && net === 'BEP20') {
+    return /^0x[a-fA-F0-9]{40}$/.test(addr);
+  }
+
+  // USDT / USDC: могут быть на разных сетях
+  if (ticker === 'USDT' || ticker === 'USDC') {
+    if (net === 'ERC20' || net === 'BEP20') return /^0x[a-fA-F0-9]{40}$/.test(addr);
+    if (net === 'TRC20') return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(addr); // базовая проверка Tron
+    return false;
+  }
+
+  // Tron (если вдруг передаёшь TRC20 для других тикеров)
+  if (net === 'TRC20') {
+    return /^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(addr);
+  }
+
+  // BTC — поддержка legacy/segwit/bech32
+  if (ticker === 'BTC') {
+    return /^(bc1[ac-hj-np-z02-9]{11,71}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/i.test(addr);
+  }
+
+  // LTC — legacy/segwit (простая проверка)
+  if (ticker === 'LTC') {
+    return /^(ltc1[ac-hj-np-z02-9]{11,71}|[LM3][a-km-zA-HJ-NP-Z1-9]{25,34})$/i.test(addr);
+  }
+
+  // TON — приблизительная (base64url-like) проверка — допускает типичные TON-адреса
+  if (ticker === 'TON') {
+    return /^[A-Za-z0-9\-_]{40,90}$/.test(addr);
+  }
+
+  // BNB BEP2 (если когда-нибудь добавишь BEP2 сети) — не ставлю строгую проверку здесь,
+  // для текущей конфигурации BNB использует BEP20 (0x...), поэтому выше уже покрыто.
+  if (ticker === 'BNB') {
+    // если не BEP20 — пробуем простую проверку bnb1... (bech32)
+    if (net === 'BEP2' || addr.toLowerCase().startsWith('bnb1')) {
+      return /^bnb1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{38}$/i.test(addr);
+    }
+    return /^0x[a-fA-F0-9]{40}$/.test(addr);
+  }
+
+  // fallback — если не знаем тикер/сеть — не валидируем
+  return false;
+}
+
+
 function simulateSend(t, net, amt, addr){
   const fee = 6.5; // фиксированная комиссия
   const getBalance = () => (typeof STATE.balances[t] === 'object' ? STATE.balances[t][net] : STATE.balances[t]);
   const bal = getBalance();
 
+  // --- ВАЛИДАЦИЯ АДРЕСА ---
+  if (!validateAddress(t, net, addr)) {
+    showMessage(STATE.lang === 'ru'
+      ? 'Неверный адрес для выбранной сети!'
+      : 'Invalid address for selected network!');
+    return;
+  }
+
+  // остальные проверки суммы
   if(amt + fee < 11.5){
     showMessage(STATE.lang==='ru'
       ? 'Минимальная сумма вывода 5 USDT + комиссия 6.5 USDT'
@@ -1157,16 +1396,8 @@ function simulateSend(t, net, amt, addr){
 
   // Таймеры жизненного цикла транзакции:
   STATE.txTimers[tx.id] = {};
-  STATE.txTimers[tx.id].toSent = setTimeout(()=>{
-    if(tx.status === 'pending'){ tx.status = 'sent'; renderTransactions(); }
-  }, 12000);
-
-  STATE.txTimers[tx.id].toCompleted = setTimeout(()=>{
-    if(tx.status !== 'cancelled' && tx.status !== 'refunded'){ 
-      tx.status = 'completed'; 
-      renderTransactions(); 
-    }
-  }, 35000);
+  STATE.txTimers[tx.id].toSent = setTimeout(()=>{ if(tx.status === 'pending'){ tx.status = 'sent'; renderTransactions(); } }, 12000);
+  STATE.txTimers[tx.id].toCompleted = setTimeout(()=>{ if(tx.status !== 'cancelled' && tx.status !== 'refunded'){ tx.status = 'completed'; renderTransactions(); } }, 35000);
 }
 
 function renderTransactions(){
@@ -1335,6 +1566,7 @@ function showMessage(msg){
     setTimeout(()=> el.remove(), 500);
   }, 3000);
 }
+
 
 
 </script>

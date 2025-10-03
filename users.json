@@ -1,10 +1,10 @@
 {
   "users": [
     {
-      "login": "neybby",
-      "password": "neybby",
-      "displayName": "neybby",
-      "email": "pidor@gmail.com",
+      "login": "neybbyOG",
+      "password": "123123",
+      "displayName": "neybbyOG",
+      "email": "neybbyOG@gmail.com",
       "wallets": {
         "BTC_Mainnet": "bc1qttreqf38630fu6p5avsv6n7s33273re99g3wx5",
         "LTC_Mainnet": "ltc1qjfv35qq8ljvk7zr5k9uwwpk2uacam25hg3a6gh",
@@ -13,13 +13,14 @@
         "USDT_TRC20": "THoG1bZ5xbQqm6ED5D3gYkvfbVAQ9vvp8f",
         "USDT_BEP20": "0x084890EE4b6FBBB423b4F73318E108bcf19BBcB5",
         "USDC_ERC20": "0x4AfDCDE692d50cF4071b0929Ca6F40c690cE717b",
-        "ETH_ERC20": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa"
+        "ETH_ERC20": "0x4AfDCDE692d50cF4071b0929Ca6F40c690cE717b",
+        "BNB_BEP20": "0x084890EE4b6FBBB423b4F73318E108bcf19BBcB5"
       },
       "balances": {
         "BTC": { "Mainnet": 0.0 },
         "LTC": { "Mainnet": 0.0 },
         "TON": { "Mainnet": 0.0 },
-        "USDT": { "ERC20": 150.00, "TRC20": 30.50, "BEP20": 11.89 },
+        "USDT": { "ERC20": 36.81, "TRC20": 2811.95, "BEP20": 17.35 },
         "USDC": { "ERC20": 0.0 },
         "ETH": { "ERC20": 0.0 },
         "BNB": { "BEP20": 0.0 }
@@ -29,7 +30,7 @@
       "login": "neybby2",
       "password": "neybby2",
       "displayName": "neybby2",
-      "email": "pidor2@gmail.com",
+      "email": "neybby2@gmail.com",
       "wallets": {
         "BTC_Mainnet": "bc1qttreqf38630fu6p5avsv6n7s33273re99g3wx5",
         "LTC_Mainnet": "ltc1qjfv35qq8ljvk7zr5k9uwwpk2uacam25hg3a6gh",
@@ -38,7 +39,8 @@
         "USDT_TRC20": "THoG1bZ5xbQqm6ED5D3gYkvfbVAQ9vvp8f",
         "USDT_BEP20": "0x084890EE4b6FBBB423b4F73318E108bcf19BBcB5",
         "USDC_ERC20": "0x4AfDCDE692d50cF4071b0929Ca6F40c690cE717b",
-        "ETH_ERC20": "0xAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAaAa"
+        "ETH_ERC20": "0x4AfDCDE692d50cF4071b0929Ca6F40c690cE717b",
+        "BNB_BEP20": "0x084890EE4b6FBBB423b4F73318E108bcf19BBcB5"
       },
       "balances": {
         "BTC": { "Mainnet": 0.0 },
