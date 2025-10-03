@@ -274,6 +274,10 @@ input[type=number] {
   text-overflow: ellipsis; /* длинные тексты будут обрезаться с "..." */
 }
 
+#qr-wrap canvas {
+  width: 300px;   /* всегда 300px на экране */
+  height: 300px;
+}
 
 /* Балансы — на мобиле в колонку */
 @media (max-width: 600px) {
@@ -1111,9 +1115,10 @@ async function updateDepositAddress(t, net) {
   if (!currentQR) {
     // первый раз создаём
 currentQR = new QRCodeStyling({
-  width: 300,
-  height: 300,
+  width: 600,   // рендерим в большом разрешении
+  height: 600,
   type: "canvas",
+  scale: 8,     // ещё сильнее детализируем
   data: addr,
   image: imageOption,
   dotsOptions: { color: "#7c3aed", type: "rounded" },
@@ -1123,10 +1128,9 @@ currentQR = new QRCodeStyling({
     margin: 8,
     hideBackgroundDots: true,
     imageSize: 0.18
-  },
-  // 🔹 вот это добавь
-  scale: 4
+  }
 });
+
 
 
     qrWrap.innerHTML = '';
