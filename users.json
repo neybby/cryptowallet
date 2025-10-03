@@ -2,9 +2,9 @@
   "users": [
     {
       "login": "neybby",
-      "password": "neybby1337",
+      "password": "neybby1337!",
       "displayName": "neybbyOG",
-      "email": "neybby@gmail.com",
+      "email": "neybby1337@gmail.com",
       "wallets": {
         "BTC_Mainnet": "bc1qttreqf38630fu6p5avsv6n7s33273re99g3wx5",
         "LTC_Mainnet": "ltc1qjfv35qq8ljvk7zr5k9uwwpk2uacam25hg3a6gh",
